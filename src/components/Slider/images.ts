@@ -23,4 +23,4 @@ export default [
   image6,
   image7,
   image8
-].map((src) => createImageObj(src));
+].map(createImageObj);
