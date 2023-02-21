@@ -25,10 +25,20 @@ const Slider = () => {
 
   const handleDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!sliderRef.current) return;
+    const { scrollLeft } = sliderRef.current;
+    const adjustedScrollLeft = getAdjustedScrollLeft(scrollLeft) ?? scrollLeft;
 
     setIsDragging(false);
     setPrevClientX(e.pageX);
-    setPrevScrollLeft(sliderRef.current.scrollLeft);
+    setPrevScrollLeft(adjustedScrollLeft);
+
+    updateIsSwipeLeftPossible(adjustedScrollLeft);
+    updateIsSwipeRightPossible(adjustedScrollLeft, sliderRef.current);
+
+    sliderRef.current.scrollTo({
+      left: adjustedScrollLeft,
+      behavior: 'smooth'
+    });
   };
 
   const handleDrag = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -58,20 +68,22 @@ const Slider = () => {
   const handleSwipe = (
     calculateNewScroll: typeof calculateScrollAfterSwipeLeft
   ) => {
-    const [, imgElement] = imageRefMap.current.entries().next().value;
-
-    if (!(imgElement instanceof HTMLImageElement)) return;
+    const swipeWidth = getSwipeWidth();
+    if (swipeWidth == null) return;
     if (!sliderRef.current) return;
 
-    const gapWidth = 16;
-    const imgWidth = imgElement.clientWidth;
-    const swipeWidth = imgWidth + gapWidth;
     const newScrollLeft = calculateNewScroll(prevScrollLeft, swipeWidth);
+    const adjustedScrollLeft =
+      getAdjustedScrollLeft(newScrollLeft) ?? newScrollLeft;
 
-    updateIsSwipeLeftPossible(newScrollLeft);
-    updateIsSwipeRightPossible(newScrollLeft, sliderRef.current);
-    setPrevScrollLeft(newScrollLeft);
-    sliderRef.current.scrollLeft = newScrollLeft;
+    updateIsSwipeLeftPossible(adjustedScrollLeft);
+    updateIsSwipeRightPossible(adjustedScrollLeft, sliderRef.current);
+    setPrevScrollLeft(adjustedScrollLeft);
+
+    sliderRef.current.scrollTo({
+      left: adjustedScrollLeft,
+      behavior: 'smooth'
+    });
   };
 
   const updateIsSwipeLeftPossible = (scrollPosition: number) => {
@@ -84,6 +96,31 @@ const Slider = () => {
   ) => {
     const scrollEnd = element.scrollWidth - element.clientWidth;
     setIsSwipeRightPossible(scrollPosition < scrollEnd);
+  };
+
+  const getAdjustedScrollLeft = (scrollLeft: number) => {
+    const swipeWidth = getSwipeWidth();
+    if (swipeWidth == null) return;
+
+    const offset = scrollLeft % swipeWidth;
+    const spaceToNextImg = swipeWidth - offset;
+    const threshold = swipeWidth * 0.4;
+    const spaceToAdd = offset > threshold ? spaceToNextImg : -offset;
+    const adjusted = scrollLeft + spaceToAdd;
+
+    return adjusted;
+  };
+
+  const getSwipeWidth = () => {
+    const [, imgElement] = imageRefMap.current.entries().next().value;
+
+    if (!(imgElement instanceof HTMLImageElement)) return;
+
+    const gapWidth = 16;
+    const imgWidth = imgElement.clientWidth;
+    const swipeWidth = imgWidth + gapWidth;
+
+    return swipeWidth;
   };
 
   return (
@@ -132,7 +169,7 @@ const Slider = () => {
             onPointerDown={(e) => e.preventDefault()}
             // Subtract 1rem * (number of flex items) from width calculation
             // to account for gaps between items
-            className="h-80 w-full flex-shrink-0 rounded object-cover md:w-[calc((100%-1rem*1)/2)] lg:w-[calc((100%-1rem*2)/3)]"
+            className="h-80 w-full flex-shrink-0 snap-center rounded object-cover md:w-[calc((100%-1rem*1)/2)] lg:w-[calc((100%-1rem*2)/3)]"
           ></img>
         ))}
       </div>
