@@ -14,13 +14,10 @@ function createImageObj(imageUrl: string) {
   };
 }
 
-export default [
-  image1,
-  image2,
-  image3,
-  image4,
-  image5,
-  image6,
-  image7,
-  image8
-].map(createImageObj);
+export function createSetOfImages() {
+  return [image1, image2, image3, image4, image5, image6, image7, image8].map(
+    createImageObj
+  );
+}
+
+export default createSetOfImages();

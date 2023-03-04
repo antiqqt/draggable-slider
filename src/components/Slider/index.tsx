@@ -1,9 +1,12 @@
 import { useRef, useState } from 'react';
-import images from './images';
+import images, { createSetOfImages } from './images';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons';
+import ImageSkeleton from '../ImageSkeleton/ImageSkeleton';
 
 const Slider = () => {
+  const [sliderImages, setSliderImages] = useState(images);
+
   const [isDragging, setIsDragging] = useState(false);
   const [prevScrollLeft, setPrevScrollLeft] = useState(0);
   const [prevClientX, setPrevClientX] = useState(0);
@@ -12,7 +15,9 @@ const Slider = () => {
   const [isSwipeRightPossible, setIsSwipeRightPossible] = useState(true);
 
   const sliderRef = useRef<HTMLDivElement>(null);
-  const imageRefMap = useRef(new Map<string, HTMLImageElement>());
+  const imageRefMap = useRef(
+    new Map<string, HTMLImageElement | HTMLDivElement>()
+  );
 
   const handleDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!sliderRef.current) return;
@@ -123,6 +128,21 @@ const Slider = () => {
     return swipeWidth;
   };
 
+  const handleLoadImagesLeft = () => {
+    setTimeout(() => {
+      setIsSwipeLeftPossible(true);
+      setSliderImages((imgs) => [...imgs, ...createSetOfImages()]);
+    }, 1000);
+  };
+
+  const handleLoadImagesRight = () => {
+    setTimeout(() => {
+      setIsSwipeRightPossible(true);
+      console.log(sliderImages);
+      setSliderImages((imgs) => [...imgs, ...createSetOfImages()]);
+    }, 1000);
+  };
+
   return (
     <section className="relative flex">
       {isSwipeLeftPossible && (
@@ -154,7 +174,14 @@ const Slider = () => {
             : 'cursor-grab scroll-smooth'
         } flex max-w-sm touch-none gap-x-4 overflow-hidden md:max-w-4xl lg:max-w-7xl`}
       >
-        {images.map(({ id, src }) => (
+        {/* <ImageSkeleton
+          id="left"
+          imageRefMap={imageRefMap}
+          onObserve={handleLoadImagesLeft}
+          sliderElement={sliderRef.current}
+          sliderImages={sliderImages}
+        ></ImageSkeleton> */}
+        {sliderImages.map(({ id, src }) => (
           <img
             ref={(ref) => {
               if (ref) {
@@ -172,6 +199,10 @@ const Slider = () => {
             className="h-80 w-full flex-shrink-0 snap-center rounded object-cover md:w-[calc((100%-1rem*1)/2)] lg:w-[calc((100%-1rem*2)/3)]"
           ></img>
         ))}
+        <ImageSkeleton
+          onObserve={handleLoadImagesRight}
+          sliderElement={sliderRef.current}
+        ></ImageSkeleton>
       </div>
 
       {isSwipeRightPossible && (
