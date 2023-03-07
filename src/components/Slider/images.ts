@@ -14,10 +14,24 @@ function createImageObj(imageUrl: string) {
   };
 }
 
+function shuffleArray<T>(array: T[]) {
+  return array
+    .map((value) => ({ value, sort: Math.random() }))
+    .sort((a, b) => a.sort - b.sort)
+    .map(({ value }) => value);
+}
+
 export function createSetOfImages() {
-  return [image1, image2, image3, image4, image5, image6, image7, image8].map(
-    createImageObj
-  );
+  return shuffleArray([
+    image1,
+    image2,
+    image3,
+    image4,
+    image5,
+    image6,
+    image7,
+    image8
+  ]).map(createImageObj);
 }
 
 export default createSetOfImages();

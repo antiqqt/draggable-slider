@@ -4,8 +4,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons';
 import ImageSkeleton from '../ImageSkeleton/ImageSkeleton';
 
+const gapWidth = 16;
+const delay = 1000;
+
 const Slider = () => {
   const [sliderImages, setSliderImages] = useState(images);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const [isDragging, setIsDragging] = useState(false);
   const [prevScrollLeft, setPrevScrollLeft] = useState(0);
@@ -22,7 +26,7 @@ const Slider = () => {
   const handleDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!sliderRef.current) return;
 
-    sliderRef.current.setPointerCapture(e.pointerId);
+    // sliderRef.current.setPointerCapture(e.pointerId);
     setIsDragging(true);
     setPrevScrollLeft(sliderRef.current.scrollLeft);
     setPrevClientX(e.clientX);
@@ -30,6 +34,8 @@ const Slider = () => {
 
   const handleDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!sliderRef.current) return;
+    if (!isDragging) return;
+
     const { scrollLeft } = sliderRef.current;
     const adjustedScrollLeft = getAdjustedScrollLeft(scrollLeft) ?? scrollLeft;
 
@@ -121,7 +127,6 @@ const Slider = () => {
 
     if (!(imgElement instanceof HTMLImageElement)) return;
 
-    const gapWidth = 16;
     const imgWidth = imgElement.clientWidth;
     const swipeWidth = imgWidth + gapWidth;
 
@@ -129,18 +134,27 @@ const Slider = () => {
   };
 
   const handleLoadImagesLeft = () => {
-    setTimeout(() => {
-      setIsSwipeLeftPossible(true);
-      setSliderImages((imgs) => [...imgs, ...createSetOfImages()]);
-    }, 1000);
+    new Promise<void>((resolve) => {
+      setTimeout(() => {
+        setSliderImages((imgs) => [...createSetOfImages(), ...imgs]);
+        setIsSwipeLeftPossible(true);
+        resolve();
+      }, delay);
+    }).then(() => {
+      if (!sliderRef.current) return;
+
+      sliderRef.current.scrollTo({
+        left: prevScrollLeft,
+        behavior: 'smooth'
+      });
+    });
   };
 
   const handleLoadImagesRight = () => {
     setTimeout(() => {
       setIsSwipeRightPossible(true);
-      console.log(sliderImages);
       setSliderImages((imgs) => [...imgs, ...createSetOfImages()]);
-    }, 1000);
+    }, delay);
   };
 
   return (
@@ -148,7 +162,10 @@ const Slider = () => {
       {isSwipeLeftPossible && (
         <button
           type="button"
-          onClick={() => handleSwipe(calculateScrollAfterSwipeLeft)}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSwipe(calculateScrollAfterSwipeLeft);
+          }}
           className="absolute flex aspect-square w-8 -translate-x-1/2 cursor-pointer items-center justify-center self-center rounded-full bg-neutral-100 text-neutral-700 transition hover:bg-indigo-500 hover:text-white"
         >
           <FontAwesomeIcon icon={faArrowLeft}></FontAwesomeIcon>
@@ -167,21 +184,14 @@ const Slider = () => {
         // Without it browser cancels drag automatically after a short time.
         // idk why it should be controlled by CSS tho ¯\_(ツ)_/¯
         className={`${
-          isDragging
-            ? // Set scroll to auto while dragging
-              // to fix scroll lags
-              'cursor-grabbing scroll-auto'
-            : 'cursor-grab scroll-smooth'
+          isDragging ? 'cursor-grabbing' : 'cursor-grab'
         } flex max-w-sm touch-none gap-x-4 overflow-hidden md:max-w-4xl lg:max-w-7xl`}
       >
-        {/* <ImageSkeleton
-          id="left"
-          imageRefMap={imageRefMap}
+        <ImageSkeleton
           onObserve={handleLoadImagesLeft}
           sliderElement={sliderRef.current}
-          sliderImages={sliderImages}
-        ></ImageSkeleton> */}
-        {sliderImages.map(({ id, src }) => (
+        ></ImageSkeleton>
+        {sliderImages.map(({ id, src }, index) => (
           <img
             ref={(ref) => {
               if (ref) {
@@ -192,7 +202,22 @@ const Slider = () => {
             }}
             key={id}
             src={src}
-            loading={'lazy'}
+            onLoad={(e) => {
+              const isLast = index === sliderImages.length - 1;
+
+              if (isLast && sliderRef.current && !isLoaded) {
+                const initialOffset =
+                  e.currentTarget.getBoundingClientRect().width + gapWidth;
+
+                setIsSwipeLeftPossible(true);
+                setIsLoaded(true);
+                setPrevScrollLeft(initialOffset);
+                sliderRef.current.scrollTo({
+                  left: initialOffset,
+                  behavior: 'auto'
+                });
+              }
+            }}
             onPointerDown={(e) => e.preventDefault()}
             // Subtract 1rem * (number of flex items) from width calculation
             // to account for gaps between items
