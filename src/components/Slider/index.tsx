@@ -26,10 +26,10 @@ const Slider = () => {
   const handleDragStart = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!sliderRef.current) return;
 
-    // sliderRef.current.setPointerCapture(e.pointerId);
     setIsDragging(true);
     setPrevScrollLeft(sliderRef.current.scrollLeft);
     setPrevClientX(e.clientX);
+    sliderRef.current.setPointerCapture(e.pointerId);
   };
 
   const handleDragEnd = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -162,10 +162,7 @@ const Slider = () => {
       {isSwipeLeftPossible && (
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleSwipe(calculateScrollAfterSwipeLeft);
-          }}
+          onClick={() => handleSwipe(calculateScrollAfterSwipeLeft)}
           className="absolute flex aspect-square w-8 -translate-x-1/2 cursor-pointer items-center justify-center self-center rounded-full bg-neutral-100 text-neutral-700 transition hover:bg-indigo-500 hover:text-white"
         >
           <FontAwesomeIcon icon={faArrowLeft}></FontAwesomeIcon>
